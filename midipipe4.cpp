@@ -342,6 +342,7 @@ print_portmidi_list (bool as_sexps = false)
 void
 enable_realtime ()
 {
+#ifdef USE_LINUX_SCHED_FIFO
     static bool enabled = false;
     if (enabled) return;
       {
@@ -364,6 +365,7 @@ enable_realtime ()
           }
       }
     enabled = true;
+#endif
 }
 
 void
