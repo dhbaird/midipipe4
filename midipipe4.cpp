@@ -115,6 +115,9 @@ print_help (const char * argv0)
 void
 print_namespace ()
 {
+    static bool printed = false;
+    if (printed) return;
+    printed = true;
     printf ("(xmlns:m \"http://aclevername.com/ns/20090207-midipipe4/#\")\n");
 }
 
@@ -136,43 +139,43 @@ print_midi_message (const char * buf, int len, int64_t time, int port)
       {
       case 0x80:
         //assert (len == 3);
-        printf ("(m:note_off %Ld %d %d %d %d)\n",
+        printf ("(m:note_off %lld %d %d %d %d)\n",
                 time, port, channel, key, velocity);
         break;
       case 0x90:
         //assert (len == 3);
-        printf ("(m:note_on %Ld %d %d %d %d)\n",
+        printf ("(m:note_on %lld %d %d %d %d)\n",
                 time, port, channel, key, velocity);
         break;
       case 0xa0:
         {
             //assert (len == 3);
             const uint8_t pressure = buf[2];
-            printf ("(m:key_pressure %Ld %d %d %d %d)\n",
+            printf ("(m:key_pressure %lld %d %d %d %d)\n",
                     time, port, channel, key, pressure);
         }
         break;
       case 0xb0:
         //assert (len == 3);
-        printf ("(m:control_change %Ld %d %d %d %d)\n",
+        printf ("(m:control_change %lld %d %d %d %d)\n",
                 time, port, channel, controller, value);
         break;
       case 0xc0:
         //assert (len == 2);
-        printf ("(m:program_change %Ld %d %d %d)\n",
+        printf ("(m:program_change %lld %d %d %d)\n",
                 time, port, channel, program);
         break;
       case 0xd0:
         {
             //assert (len == 2);
             const uint8_t pressure = buf[1];
-            printf ("(m:channel_pressure %Ld %d %d %d)\n",
+            printf ("(m:channel_pressure %lld %d %d %d)\n",
                     time, port, channel, pressure);
         }
         break;
       case 0xe0:
         //assert (len == 3);
-        printf ("(m:pitch_bend %Ld %d %d %d)\n",
+        printf ("(m:pitch_bend %lld %d %d %d)\n",
                 time, port, channel, pitch);
         break;
       // TODO: sysex
@@ -198,7 +201,7 @@ parse_midi_message (const char * str,
     int pressure;
     assert (len >= 3);
 
-    if (sscanf (str, "(m:note_off %Ld %d %d %d %d)",
+    if (sscanf (str, "(m:note_off %lld %d %d %d %d)",
                 time, port, &channel, &key, &velocity) == 5)
       {
         buf[0] = 0x80 | channel;
@@ -207,7 +210,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:note_on %Ld %d %d %d %d)",
+    if (sscanf (str, "(m:note_on %lld %d %d %d %d)",
                 time, port, &channel, &key, &velocity) == 5)
       {
         buf[0] = 0x90 | channel;
@@ -216,7 +219,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:key_pressure %Ld %d %d %d %d)",
+    if (sscanf (str, "(m:key_pressure %lld %d %d %d %d)",
                 time, port, &channel, &key, &pressure) == 5)
       {
         buf[0] = 0xa0 | channel;
@@ -225,7 +228,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:control_change %Ld %d %d %d %d)",
+    if (sscanf (str, "(m:control_change %lld %d %d %d %d)",
                 time, port, &channel, &controller, &value) == 5)
       {
         buf[0] = 0xb0 | channel;
@@ -234,7 +237,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:program_change %Ld %d %d %d)",
+    if (sscanf (str, "(m:program_change %lld %d %d %d)",
                 time, port, &channel, &program) == 4)
       {
         buf[0] = 0xc0 | channel;
@@ -242,7 +245,7 @@ parse_midi_message (const char * str,
         return 2;
       }
 
-    if (sscanf (str, "(m:channel_pressure %Ld %d %d %d)",
+    if (sscanf (str, "(m:channel_pressure %lld %d %d %d)",
                 time, port, &channel, &pressure) == 4)
       {
           buf[0] = 0xd0 | channel;
@@ -250,7 +253,7 @@ parse_midi_message (const char * str,
         return 2;
       }
 
-    if (sscanf (str, "(m:pitch_bend %Ld %d %d %d)",
+    if (sscanf (str, "(m:pitch_bend %lld %d %d %d)",
                 time, port, &channel, &pitch) == 4)
       {
         int pitchx = pitch + 0x2000;
@@ -456,6 +459,7 @@ connect_input (std::string uri)
 
     if (ret != -1)
       {
+        print_namespace (); // XXX: hack
         printf ("(m:connected-input \"%s\" %d)\n", suri, ret);
       }
 
@@ -491,6 +495,7 @@ connect_output (std::string uri)
 
     if (ret != -1)
       {
+        print_namespace (); // XXX: hack
         printf ("(m:connected-output \"%s\" %d)\n", suri, ret);
       }
 
@@ -616,7 +621,7 @@ main (int argc, char * argv[])
                   }
                 if ((cur_time - last_time) >= 1000LL * 1000LL * 1000LL)
                   {
-                    printf ("(m:time %Ld)\n", cur_time);
+                    printf ("(m:time %lld)\n", cur_time);
                     //fflush (stdout);
                     again = true;
                     last_time += 1000LL * 1000LL * 1000LL;
