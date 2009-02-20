@@ -1,8 +1,10 @@
 PLATFORM ?= mac
 PLATFORM ?= linux
 
-CFLAGS += -Iportmidi-82-20080614/portmidi-tmp/porttime
-CFLAGS += -Iportmidi-82-20080614/portmidi-tmp/pm_common
+PM_DIR = portmidi-82-20080614/portmidi
+
+CFLAGS += -I$(PM_DIR)/porttime
+CFLAGS += -I$(PM_DIR)/pm_common
 CFLAGS += -O2
 CFLAGS += $(REALTIME)
 CXXFLAGS = $(CFLAGS)
@@ -30,13 +32,11 @@ clean:
 
 
 
-PM_DIR = portmidi-82-20080614/portmidi
-
 ifeq ($(PLATFORM),linux)
   PM_PLATFORM_MAKEFILE = pm_linux/Makefile
   PMLIBS = 
   PMLIBS += $(PM_DIR)/pm_linux/libportmidi.a
-  PMLIBS += $(PM_DIR)/pm_linux/libporttime.a
+  PMLIBS += $(PM_DIR)/porttime/libporttime.a
 endif
 
 ifeq ($(PLATFORM),mac)
