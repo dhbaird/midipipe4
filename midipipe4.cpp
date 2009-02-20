@@ -1,6 +1,7 @@
 // FIXME:
 //
-// - PortMidi timer will overflow after some time (10s of minutes?)
+// - Will PortMidi timer will overflow after some time?
+
 //
 // TODO:
 //
@@ -42,6 +43,22 @@
 #include <string>
 #include <algorithm>
 
+#if defined (USE_OSX_REALTIME)
+// See:
+// - "Overview of Scheduling" at developer.apple.com
+// - Google: site:lists.apple.com THREAD_TIME_CONSTRAINT_POLICY
+// - Google: site:lists.apple.com coreaudio-api real-time
+// - Google: site:lists.apple.com coreaudio-api "time constraint"
+// - Alternative options: configure with high priority versus time constraint
+// - jackd source: config/os/macosx/pThreadUtilities.h: setThreadToPriority()
+//#include <sysdeps/pThreadUtilities.h>
+#include <mach/mach_error.h>
+#include <mach/thread_policy.h>
+#include <mach/thread_act.h>
+#include <CoreAudio/HostTime.h>
+#include <mach/mach_init.h> // for mach_thread_self()
+#endif
+
 #define DRIVER_INFO NULL
 //#define TIME_PROC ((long (*)(void *)) Pt_Time)
 #define TIME_PROC ((long (*)(void *)) my_time_proc)
@@ -51,6 +68,9 @@
 #define TIME_START Pt_Start(1, 0, 0) /* timer started w/millisecond accuracy */
 
 #define ENABLE_CONNECT_MESSAGES true
+
+//#define PREFIX "m:"
+#define PREFIX ""
 
 int latency = 1; // in ms (XXX: how does this variable affect the system)
 //int latency = 0; // in ms (XXX: how does this variable affect the system)
@@ -118,7 +138,7 @@ print_namespace ()
     static bool printed = false;
     if (printed) return;
     printed = true;
-    printf ("(xmlns:m \"http://aclevername.com/ns/20090207-midipipe4/#\")\n");
+    printf ("(xmlns \"http://aclevername.com/ns/20090207-midipipe4/#\")\n");
 }
 
 
@@ -139,43 +159,43 @@ print_midi_message (const char * buf, int len, int64_t time, int port)
       {
       case 0x80:
         //assert (len == 3);
-        printf ("(m:note_off %lld %d %d %d %d)\n",
+        printf ("(" PREFIX "note-off %lld %d %d %d %d)\n",
                 time, port, channel, key, velocity);
         break;
       case 0x90:
         //assert (len == 3);
-        printf ("(m:note_on %lld %d %d %d %d)\n",
+        printf ("(" PREFIX "note-on %lld %d %d %d %d)\n",
                 time, port, channel, key, velocity);
         break;
       case 0xa0:
         {
             //assert (len == 3);
             const uint8_t pressure = buf[2];
-            printf ("(m:key_pressure %lld %d %d %d %d)\n",
+            printf ("(" PREFIX "key-pressure %lld %d %d %d %d)\n",
                     time, port, channel, key, pressure);
         }
         break;
       case 0xb0:
         //assert (len == 3);
-        printf ("(m:control_change %lld %d %d %d %d)\n",
+        printf ("(" PREFIX "control-change %lld %d %d %d %d)\n",
                 time, port, channel, controller, value);
         break;
       case 0xc0:
         //assert (len == 2);
-        printf ("(m:program_change %lld %d %d %d)\n",
+        printf ("(" PREFIX "program-change %lld %d %d %d)\n",
                 time, port, channel, program);
         break;
       case 0xd0:
         {
             //assert (len == 2);
             const uint8_t pressure = buf[1];
-            printf ("(m:channel_pressure %lld %d %d %d)\n",
+            printf ("(" PREFIX "channel-pressure %lld %d %d %d)\n",
                     time, port, channel, pressure);
         }
         break;
       case 0xe0:
         //assert (len == 3);
-        printf ("(m:pitch_bend %lld %d %d %d)\n",
+        printf ("(" PREFIX "pitch-bend %lld %d %d %d)\n",
                 time, port, channel, pitch);
         break;
       // TODO: sysex
@@ -201,7 +221,7 @@ parse_midi_message (const char * str,
     int pressure;
     assert (len >= 3);
 
-    if (sscanf (str, "(m:note_off %lld %d %d %d %d)",
+    if (sscanf (str, "(" PREFIX "note-off %lld %d %d %d %d)",
                 time, port, &channel, &key, &velocity) == 5)
       {
         buf[0] = 0x80 | channel;
@@ -210,7 +230,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:note_on %lld %d %d %d %d)",
+    if (sscanf (str, "(" PREFIX "note-on %lld %d %d %d %d)",
                 time, port, &channel, &key, &velocity) == 5)
       {
         buf[0] = 0x90 | channel;
@@ -219,7 +239,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:key_pressure %lld %d %d %d %d)",
+    if (sscanf (str, "(" PREFIX "key-pressure %lld %d %d %d %d)",
                 time, port, &channel, &key, &pressure) == 5)
       {
         buf[0] = 0xa0 | channel;
@@ -228,7 +248,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:control_change %lld %d %d %d %d)",
+    if (sscanf (str, "(" PREFIX "control-change %lld %d %d %d %d)",
                 time, port, &channel, &controller, &value) == 5)
       {
         buf[0] = 0xb0 | channel;
@@ -237,7 +257,7 @@ parse_midi_message (const char * str,
         return 3;
       }
 
-    if (sscanf (str, "(m:program_change %lld %d %d %d)",
+    if (sscanf (str, "(" PREFIX "program-change %lld %d %d %d)",
                 time, port, &channel, &program) == 4)
       {
         buf[0] = 0xc0 | channel;
@@ -245,7 +265,7 @@ parse_midi_message (const char * str,
         return 2;
       }
 
-    if (sscanf (str, "(m:channel_pressure %lld %d %d %d)",
+    if (sscanf (str, "(" PREFIX "channel-pressure %lld %d %d %d)",
                 time, port, &channel, &pressure) == 4)
       {
           buf[0] = 0xd0 | channel;
@@ -253,7 +273,7 @@ parse_midi_message (const char * str,
         return 2;
       }
 
-    if (sscanf (str, "(m:pitch_bend %lld %d %d %d)",
+    if (sscanf (str, "(" PREFIX "pitch-bend %lld %d %d %d)",
                 time, port, &channel, &pitch) == 4)
       {
         int pitchx = pitch + 0x2000;
@@ -323,7 +343,7 @@ print_portmidi_list (bool as_sexps = false)
           {
             // FIXME: need to sanitize the description (x->second) so that
             //        it doesn't contain quotes
-            printf ("(m:input-port \"pmi:%d\" \"%s\")\n",
+            printf ("(" PREFIX "input-port \"pmi:%d\" \"%s\")\n",
                     x->first,
                     x->second.c_str ());
           }
@@ -334,18 +354,18 @@ print_portmidi_list (bool as_sexps = false)
           {
             // FIXME: need to sanitize the description (x->second) so that
             //        it doesn't contain quotes
-            printf ("(m:output-port \"pmo:%d\" \"%s\")\n",
+            printf ("(" PREFIX "output-port \"pmo:%d\" \"%s\")\n",
                     x->first,
                     x->second.c_str ());
           }
-          printf ("(m:end-of-ports)\n");
+          printf ("(" PREFIX "end-of-ports)\n");
       }
 }
 
 void
 enable_realtime ()
 {
-#ifdef USE_LINUX_SCHED_FIFO
+#if defined (USE_LINUX_SCHED_FIFO)
     static bool enabled = false;
     if (enabled) return;
       {
@@ -368,6 +388,32 @@ enable_realtime ()
           }
       }
     enabled = true;
+#elif defined (USE_OSX_REALTIME)
+    //setThreadToPriority (0, 96, TRUE, 10 * 1000 * 1000); // realtime
+    //setThreadToPriority (0, 31, TRUE, 10 * 1000 * 1000); // normal
+    {
+        struct thread_time_constraint_policy ttcpolicy;
+        int ret;
+        ttcpolicy.period = AudioConvertNanosToHostTime (1000 * 1000);
+        ttcpolicy.computation = AudioConvertNanosToHostTime (100 * 1000);
+        ttcpolicy.constraint = AudioConvertNanosToHostTime (333 * 1000);
+        //ttcpolicy.period = HZ / 1000;
+        //ttcpolicy.computation = HZ / 10000;
+        //ttcpolicy.constraint = HZ / 3000;
+        ttcpolicy.preemptible = 1;
+
+#if 1
+        ret = thread_policy_set (mach_thread_self (),
+                                 THREAD_TIME_CONSTRAINT_POLICY,
+                                 (thread_policy_t) & ttcpolicy,
+                                 THREAD_TIME_CONSTRAINT_POLICY_COUNT
+                                );
+        if (ret != KERN_SUCCESS)
+          {
+            printf ("thread_policy_set() failed: unable to enable realtime.\r\n");
+          }
+#endif
+    }
 #endif
 }
 
@@ -460,7 +506,7 @@ connect_input (std::string uri)
     if (ret != -1)
       {
         print_namespace (); // XXX: hack
-        printf ("(m:connected-input \"%s\" %d)\n", suri, ret);
+        printf ("(" PREFIX "connected-input \"%s\" %d)\n", suri, ret);
       }
 
     return ret;
@@ -496,7 +542,7 @@ connect_output (std::string uri)
     if (ret != -1)
       {
         print_namespace (); // XXX: hack
-        printf ("(m:connected-output \"%s\" %d)\n", suri, ret);
+        printf ("(" PREFIX "connected-output \"%s\" %d)\n", suri, ret);
       }
 
     return ret;
@@ -621,7 +667,7 @@ main (int argc, char * argv[])
                   }
                 if ((cur_time - last_time) >= 1000LL * 1000LL * 1000LL)
                   {
-                    printf ("(m:time %lld)\n", cur_time);
+                    printf ("(" PREFIX "time %lld)\n", cur_time);
                     //fflush (stdout);
                     again = true;
                     last_time += 1000LL * 1000LL * 1000LL;
@@ -703,39 +749,39 @@ main (int argc, char * argv[])
                         //      rate throttling
                         char uri[1024];
                         // XXX: parsing strings is blech:
-                        if (sscanf (buf, "(m:connect-input \"%[^\"]\")", uri) == 1)
+                        if (sscanf (buf, "(" PREFIX "connect-input \"%[^\"]\")", uri) == 1)
                           {
                             if (connect_input (uri) == -1)
                               {
                                 assert (false);
                               }
                           }
-                        else if (sscanf (buf, "(m:connect-output \"%[^\"]\")", uri) == 1)
+                        else if (sscanf (buf, "(" PREFIX "connect-output \"%[^\"]\")", uri) == 1)
                           {
                             if (connect_output (uri) == -1)
                               {
                                 assert (false);
                               }
                           }
-                        else if (strcmp (buf, "(m:list-ports)") == 0)
+                        else if (strcmp (buf, "(" PREFIX "list-ports)") == 0)
                           {
                             print_portmidi_list (true);
                           }
-                        else if (strcmp (buf, "(m:list-connections)") == 0)
+                        else if (strcmp (buf, "(" PREFIX "list-connections)") == 0)
                           {
                             uri_portid_map_type::iterator i;
                             for (i = connected_inputs.begin ();
                                  i != connected_inputs.end ();
                                  ++i)
                               {
-                                printf ("(m:connected-input \"%s\" %d)\n",
+                                printf ("(" PREFIX "connected-input \"%s\" %d)\n",
                                         i->first.c_str (), i->second);
                               }
                             for (i = connected_outputs.begin ();
                                  i != connected_outputs.end ();
                                  ++i)
                               {
-                                printf ("(m:connected-output \"%s\" %d)\n",
+                                printf ("(" PREFIX "connected-output \"%s\" %d)\n",
                                         i->first.c_str (), i->second);
                               }
                           }

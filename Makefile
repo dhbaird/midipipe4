@@ -1,9 +1,6 @@
 PLATFORM ?= mac
 PLATFORM ?= linux
 
-#REALTIME = -DUSE_LINUX_SCHED_FIFO
-REALTIME = 
-
 CFLAGS += -Iportmidi-82-20080614/portmidi-tmp/porttime
 CFLAGS += -Iportmidi-82-20080614/portmidi-tmp/pm_common
 CFLAGS += -O2
@@ -12,11 +9,14 @@ CXXFLAGS = $(CFLAGS)
 
 ifeq ($(PLATFORM),linux)
   LDFLAGS += -lasound
+  REALTIME = -DUSE_LINUX_SCHED_FIFO
 endif
 ifeq ($(PLATFORM),mac)
   LDFLAGS += -framework CoreMIDI
   LDFLAGS += -framework CoreFoundation
   LDFLAGS += -framework CoreAudio
+  LDFLAGS += -framework CoreServices
+  REALTIME = -DUSE_OSX_REALTIME
 endif
 
 CC = g++
@@ -30,7 +30,7 @@ clean:
 
 
 
-PM_DIR = portmidi-82-20080614/portmidi-tmp
+PM_DIR = portmidi-82-20080614/portmidi
 
 ifeq ($(PLATFORM),linux)
   PM_PLATFORM_MAKEFILE = pm_linux/Makefile
@@ -48,7 +48,6 @@ endif
 
 
 $(PMLIBS):
-	@echo !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	cd $(PM_DIR); make -f $(PM_PLATFORM_MAKEFILE)
 	@# Mac:   make -f pm_mac/Makefile.osx
 	@# Linux: make -f pm_linux/Makefile
