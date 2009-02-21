@@ -47,7 +47,9 @@ ifeq ($(PLATFORM),mac)
 endif
 
 
-$(PMLIBS):
+.PHONY: FORCE
+
+$(PMLIBS): FORCE
 	cd $(PM_DIR); make -f $(PM_PLATFORM_MAKEFILE)
 	@# Mac:   make -f pm_mac/Makefile.osx
 	@# Linux: make -f pm_linux/Makefile

@@ -26,7 +26,6 @@
 //
 // - Periodic time messages
 
-#include <sched.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
@@ -42,6 +41,13 @@
 #include <map>
 #include <string>
 #include <algorithm>
+
+
+#if defined (USE_LINUX_SCHED_FIFO)
+#include <sched.h>
+#include <sys/time.h>
+#include <sys/resource.h>
+#endif
 
 #if defined (USE_OSX_REALTIME)
 // See:
@@ -72,8 +78,17 @@
 //#define PREFIX "m:"
 #define PREFIX ""
 
-int latency = 1; // in ms (XXX: how does this variable affect the system)
-//int latency = 0; // in ms (XXX: how does this variable affect the system)
+// lantency (in ms) (XXX: how does this variable affect the system?)
+#if defined (USE_LINUX_SCHED_FIFO)
+// 1 is a bad value for Linux
+// In Linux, PortMidi has a much greater than 1 ms latency if this is 1
+int latency = 0;
+#elif defined (USE_OSX_REALTIME)
+// 1 is an okay value for OS X
+int latency = 0;
+#else
+int latency = 0;
+#endif
 
 typedef std::map<std::string, int> uri_portid_map_type;
 typedef std::map<int, PmStream *> pm_stream_map_type;
@@ -365,17 +380,22 @@ print_portmidi_list (bool as_sexps = false)
 void
 enable_realtime ()
 {
+    printf ("(log \"Trying to enable realtime...\")\r\n");
+    fflush (stdout);
 #if defined (USE_LINUX_SCHED_FIFO)
     static bool enabled = false;
     if (enabled) return;
       {
         struct sched_param schp;
         int ret;
+        bool failed = false;
         ret = sched_get_priority_max (SCHED_FIFO);
         if (ret == -1)
           {
+            printf ("(log \"ERROR: sched_get_priority_max\")\r\n");
+            fflush (stdout);
             perror ("sched_get_priority_max");
-            assert (false);
+            failed = true;
           }
         //schp.sched_priority = ret;
         schp.sched_priority = 10;
@@ -383,8 +403,23 @@ enable_realtime ()
         ret = sched_setscheduler (0, SCHED_FIFO, &schp);
         if (ret == -1)
           {
+            printf ("(log \"ERROR: sched_setscheduler\")\r\n");
+            fflush (stdout);
             perror ("sched_setscheduler");
-            assert (false);
+            failed = true;
+          }
+        if (!failed)
+          {
+            printf ("(log \"SCHED_FIFO realtime enabled.  Excellent!\")\r\n");
+          }
+        if (failed)
+          {
+            printf ("(log \"SCHED_FIFO failed.\")\r\n");
+            printf ("(log \"Suggested action: edit /etc/security/limits.conf\")\r\n");
+            printf ("(log \"Trying to renice...\")\r\n");
+            fflush (stdout);
+            ret = setpriority (PRIO_PROCESS, 0, -10);
+            ret = setpriority (PRIO_PROCESS, 0, -20);
           }
       }
     enabled = true;
@@ -402,7 +437,6 @@ enable_realtime ()
         //ttcpolicy.constraint = HZ / 3000;
         ttcpolicy.preemptible = 1;
 
-#if 1
         ret = thread_policy_set (mach_thread_self (),
                                  THREAD_TIME_CONSTRAINT_POLICY,
                                  (thread_policy_t) & ttcpolicy,
@@ -410,10 +444,16 @@ enable_realtime ()
                                 );
         if (ret != KERN_SUCCESS)
           {
+            printf ("(log \"ERROR: thread_policy_set() failed: unable to enable realtime.\")\r\n");
             printf ("thread_policy_set() failed: unable to enable realtime.\r\n");
           }
-#endif
+        else
+          {
+            printf ("(log \"THREAD_TIME_CONSTRAINT_POLICY realtime enabled.  Excellent!\")\r\n");
+          }
     }
+#else
+    printf ("(log \"No realtime option available... sorry\")\r\n");
 #endif
 }
 
