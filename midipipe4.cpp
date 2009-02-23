@@ -82,12 +82,12 @@
 #if defined (USE_LINUX_SCHED_FIFO)
 // 1 is a bad value for Linux
 // In Linux, PortMidi has a much greater than 1 ms latency if this is 1
-int latency = 0;
+int latency = 1;
 #elif defined (USE_OSX_REALTIME)
 // 1 is an okay value for OS X
-int latency = 0;
+int latency = 1;
 #else
-int latency = 0;
+int latency = 1;
 #endif
 
 typedef std::map<std::string, int> uri_portid_map_type;
@@ -380,7 +380,7 @@ print_portmidi_list (bool as_sexps = false)
 void
 enable_realtime ()
 {
-    printf ("(log \"Trying to enable realtime...\")\r\n");
+    printf ("(log \"Trying to enable realtime...\")\n");
     fflush (stdout);
 #if defined (USE_LINUX_SCHED_FIFO)
     static bool enabled = false;
@@ -392,7 +392,7 @@ enable_realtime ()
         ret = sched_get_priority_max (SCHED_FIFO);
         if (ret == -1)
           {
-            printf ("(log \"ERROR: sched_get_priority_max\")\r\n");
+            printf ("(log \"ERROR: sched_get_priority_max\")\n");
             fflush (stdout);
             perror ("sched_get_priority_max");
             failed = true;
@@ -403,20 +403,20 @@ enable_realtime ()
         ret = sched_setscheduler (0, SCHED_FIFO, &schp);
         if (ret == -1)
           {
-            printf ("(log \"ERROR: sched_setscheduler\")\r\n");
+            printf ("(log \"ERROR: sched_setscheduler\")\n");
             fflush (stdout);
             perror ("sched_setscheduler");
             failed = true;
           }
         if (!failed)
           {
-            printf ("(log \"SCHED_FIFO realtime enabled.  Excellent!\")\r\n");
+            printf ("(log \"SCHED_FIFO realtime enabled.  Excellent!\")\n");
           }
         if (failed)
           {
-            printf ("(log \"SCHED_FIFO failed.\")\r\n");
-            printf ("(log \"Suggested action: edit /etc/security/limits.conf\")\r\n");
-            printf ("(log \"Trying to renice...\")\r\n");
+            printf ("(log \"SCHED_FIFO failed.\")\n");
+            printf ("(log \"Suggested action: edit /etc/security/limits.conf\")\n");
+            printf ("(log \"Trying to renice...\")\n");
             fflush (stdout);
             ret = setpriority (PRIO_PROCESS, 0, -10);
             ret = setpriority (PRIO_PROCESS, 0, -20);
@@ -444,16 +444,16 @@ enable_realtime ()
                                 );
         if (ret != KERN_SUCCESS)
           {
-            printf ("(log \"ERROR: thread_policy_set() failed: unable to enable realtime.\")\r\n");
-            printf ("thread_policy_set() failed: unable to enable realtime.\r\n");
+            printf ("(log \"ERROR: thread_policy_set() failed: unable to enable realtime.\")\n");
+            printf ("thread_policy_set() failed: unable to enable realtime.\n");
           }
         else
           {
-            printf ("(log \"THREAD_TIME_CONSTRAINT_POLICY realtime enabled.  Excellent!\")\r\n");
+            printf ("(log \"THREAD_TIME_CONSTRAINT_POLICY realtime enabled.  Excellent!\")\n");
           }
     }
 #else
-    printf ("(log \"No realtime option available... sorry\")\r\n");
+    printf ("(log \"No realtime option available... sorry\")\n");
 #endif
 }
 
@@ -479,7 +479,7 @@ set_nonblocking_stdin ()
 
 bool g_eof_flag = false;
 const char *
-cr_fgets_stdin ()
+cr_fgets_stdin () /* cr for "coroutine"; See Knuth TAOCP Volume 1 */
 {
     const int BUFLEN = 1024;
     static char buf[BUFLEN];
