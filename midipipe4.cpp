@@ -597,6 +597,11 @@ main (int argc, char * argv[])
     bool timestamps = false;
     bool no_throttle = false;
 
+    my_time_proc (0); // <-- don't leave this out!
+                      //     When connecting two midipipes via a pipe,
+                      //     this helps make sure they both start measuring
+                      //     time at almost the same time.  Perceived increase
+                      //     in latency could possible ensue otherwise.
     TIME_START;
 
     {
