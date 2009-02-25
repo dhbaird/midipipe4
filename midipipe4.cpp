@@ -80,11 +80,8 @@
 
 // lantency (in ms) (XXX: how does this variable affect the system?)
 #if defined (USE_LINUX_SCHED_FIFO)
-// 1 is a bad value for Linux
-// In Linux, PortMidi has a much greater than 1 ms latency if this is 1
 int latency = 1;
 #elif defined (USE_OSX_REALTIME)
-// 1 is an okay value for OS X
 int latency = 1;
 #else
 int latency = 1;
