@@ -145,17 +145,17 @@ print_help (const char * argv0)
 }
 
 void
-print_namespace ()
+print_namespace (FILE * outpipe)
 {
     static bool printed = false;
     if (printed) return;
     printed = true;
-    printf ("(xmlns \"http://aclevername.com/ns/20090207-midipipe4/#\")\n");
+    fprintf (outpipe, "(xmlns \"http://aclevername.com/ns/20090207-midipipe4/#\")\n");
 }
 
 
 void
-print_midi_message (const char * buf, int len, int64_t time, int port)
+print_midi_message (FILE * outpipe, const char * buf, int len, int64_t time, int port)
 {
     const uint8_t status = buf[0];
     const uint8_t channel = status & 0x0f;
@@ -171,43 +171,43 @@ print_midi_message (const char * buf, int len, int64_t time, int port)
       {
       case 0x80:
         //assert (len == 3);
-        printf ("(" PREFIX "note-off %lld %d %d %d %d)\n",
+        fprintf (outpipe, "(" PREFIX "note-off %lld %d %d %d %d)\n",
                 time, port, channel, key, velocity);
         break;
       case 0x90:
         //assert (len == 3);
-        printf ("(" PREFIX "note-on %lld %d %d %d %d)\n",
+        fprintf (outpipe, "(" PREFIX "note-on %lld %d %d %d %d)\n",
                 time, port, channel, key, velocity);
         break;
       case 0xa0:
         {
             //assert (len == 3);
             const uint8_t pressure = buf[2];
-            printf ("(" PREFIX "key-pressure %lld %d %d %d %d)\n",
+            fprintf (outpipe, "(" PREFIX "key-pressure %lld %d %d %d %d)\n",
                     time, port, channel, key, pressure);
         }
         break;
       case 0xb0:
         //assert (len == 3);
-        printf ("(" PREFIX "control-change %lld %d %d %d %d)\n",
+        fprintf (outpipe, "(" PREFIX "control-change %lld %d %d %d %d)\n",
                 time, port, channel, controller, value);
         break;
       case 0xc0:
         //assert (len == 2);
-        printf ("(" PREFIX "program-change %lld %d %d %d)\n",
+        fprintf (outpipe, "(" PREFIX "program-change %lld %d %d %d)\n",
                 time, port, channel, program);
         break;
       case 0xd0:
         {
             //assert (len == 2);
             const uint8_t pressure = buf[1];
-            printf ("(" PREFIX "channel-pressure %lld %d %d %d)\n",
+            fprintf (outpipe, "(" PREFIX "channel-pressure %lld %d %d %d)\n",
                     time, port, channel, pressure);
         }
         break;
       case 0xe0:
         //assert (len == 3);
-        printf ("(" PREFIX "pitch-bend %lld %d %d %d)\n",
+        fprintf (outpipe, "(" PREFIX "pitch-bend %lld %d %d %d)\n",
                 time, port, channel, pitch);
         break;
       // TODO: sysex
@@ -301,7 +301,7 @@ parse_midi_message (const char * str,
 }
 
 void
-print_portmidi_list (bool as_sexps = false)
+print_portmidi_list (FILE * outpipe, bool as_sexps = false)
 {
     int i;
     int n;
@@ -326,26 +326,26 @@ print_portmidi_list (bool as_sexps = false)
     //
     if (!as_sexps)
       {
-        printf ("Listing MIDI input/output ports.\n");
-        printf ("\n");
+        fprintf (outpipe, "Listing MIDI input/output ports.\n");
+        fprintf (outpipe, "\n");
         //
-        printf ("Inputs:\n");
+        fprintf (outpipe, "Inputs:\n");
         for (foo_type::iterator x = inputs.begin ();
              x != inputs.end ();
              ++x)
           {
-            printf ("    pmi:%d - %s\n", x->first, x->second.c_str ());
+            fprintf (outpipe, "    pmi:%d - %s\n", x->first, x->second.c_str ());
           }
         //
-        printf ("\n");
-        printf ("Outputs:\n");
+        fprintf (outpipe, "\n");
+        fprintf (outpipe, "Outputs:\n");
         for (foo_type::iterator x = outputs.begin ();
              x != outputs.end ();
              ++x)
           {
-            printf ("    pmo:%d - %s\n", x->first, x->second.c_str ());
+            fprintf (outpipe, "    pmo:%d - %s\n", x->first, x->second.c_str ());
           }
-        printf ("\n");
+        fprintf (outpipe, "\n");
       }
     else
       {
@@ -355,7 +355,7 @@ print_portmidi_list (bool as_sexps = false)
           {
             // FIXME: need to sanitize the description (x->second) so that
             //        it doesn't contain quotes
-            printf ("(" PREFIX "input-port \"pmi:%d\" \"%s\")\n",
+            fprintf (outpipe, "(" PREFIX "input-port \"pmi:%d\" \"%s\")\n",
                     x->first,
                     x->second.c_str ());
           }
@@ -366,18 +366,18 @@ print_portmidi_list (bool as_sexps = false)
           {
             // FIXME: need to sanitize the description (x->second) so that
             //        it doesn't contain quotes
-            printf ("(" PREFIX "output-port \"pmo:%d\" \"%s\")\n",
+            fprintf (outpipe, "(" PREFIX "output-port \"pmo:%d\" \"%s\")\n",
                     x->first,
                     x->second.c_str ());
           }
-          printf ("(" PREFIX "end-of-ports)\n");
+          fprintf (outpipe, "(" PREFIX "end-of-ports)\n");
       }
 }
 
 void
-enable_realtime ()
+enable_realtime (FILE * outpipe)
 {
-    printf ("(log \"Trying to enable realtime...\")\n");
+    fprintf (outpipe, "(log \"Trying to enable realtime...\")\n");
     fflush (stdout);
 #if defined (USE_LINUX_SCHED_FIFO)
     static bool enabled = false;
@@ -389,7 +389,7 @@ enable_realtime ()
         ret = sched_get_priority_max (SCHED_FIFO);
         if (ret == -1)
           {
-            printf ("(log \"ERROR: sched_get_priority_max\")\n");
+            fprintf (outpipe, "(log \"ERROR: sched_get_priority_max\")\n");
             fflush (stdout);
             perror ("sched_get_priority_max");
             failed = true;
@@ -400,20 +400,20 @@ enable_realtime ()
         ret = sched_setscheduler (0, SCHED_FIFO, &schp);
         if (ret == -1)
           {
-            printf ("(log \"ERROR: sched_setscheduler\")\n");
+            fprintf (outpipe, "(log \"ERROR: sched_setscheduler\")\n");
             fflush (stdout);
             perror ("sched_setscheduler");
             failed = true;
           }
         if (!failed)
           {
-            printf ("(log \"SCHED_FIFO realtime enabled.  Excellent!\")\n");
+            fprintf (outpipe, "(log \"SCHED_FIFO realtime enabled.  Excellent!\")\n");
           }
         if (failed)
           {
-            printf ("(log \"SCHED_FIFO failed.\")\n");
-            printf ("(log \"Suggested action: edit /etc/security/limits.conf\")\n");
-            printf ("(log \"Trying to renice...\")\n");
+            fprintf (outpipe, "(log \"SCHED_FIFO failed.\")\n");
+            fprintf (outpipe, "(log \"Suggested action: edit /etc/security/limits.conf\")\n");
+            fprintf (outpipe, "(log \"Trying to renice...\")\n");
             fflush (stdout);
             ret = setpriority (PRIO_PROCESS, 0, -10);
             ret = setpriority (PRIO_PROCESS, 0, -20);
@@ -441,21 +441,21 @@ enable_realtime ()
                                 );
         if (ret != KERN_SUCCESS)
           {
-            printf ("(log \"ERROR: thread_policy_set() failed: unable to enable realtime.\")\n");
-            printf ("thread_policy_set() failed: unable to enable realtime.\n");
+            fprintf (outpipe, "(log \"ERROR: thread_policy_set() failed: unable to enable realtime.\")\n");
+            fprintf (outpipe, "thread_policy_set() failed: unable to enable realtime.\n");
           }
         else
           {
-            printf ("(log \"THREAD_TIME_CONSTRAINT_POLICY realtime enabled.  Excellent!\")\n");
+            fprintf (outpipe, "(log \"THREAD_TIME_CONSTRAINT_POLICY realtime enabled.  Excellent!\")\n");
           }
     }
 #else
-    printf ("(log \"No realtime option available... sorry\")\n");
+    fprintf (outpipe, "(log \"No realtime option available... sorry\")\n");
 #endif
 }
 
 void
-set_nonblocking_stdin ()
+set_nonblocking_stdin () // TODO: parameterize in terms of FILE * file
 {
 #if 0
     struct termios oldt;
@@ -474,6 +474,7 @@ set_nonblocking_stdin ()
     return;
 }
 
+// TODO: parameterize in terms of FILE * file
 bool g_eof_flag = false;
 const char *
 cr_fgets_stdin () /* cr for "coroutine"; See Knuth TAOCP Volume 1 */
@@ -512,7 +513,7 @@ cr_fgets_stdin () /* cr for "coroutine"; See Knuth TAOCP Volume 1 */
 }
 
 int
-connect_input (std::string uri)
+connect_input (FILE * outpipe, std::string uri)
 {
     int x;
     int ret = -1;
@@ -542,15 +543,15 @@ connect_input (std::string uri)
 
     if (ret != -1)
       {
-        print_namespace (); // XXX: hack
-        printf ("(" PREFIX "connected-input \"%s\" %d)\n", suri, ret);
+        print_namespace (outpipe); // XXX: hack
+        fprintf (outpipe, "(" PREFIX "connected-input \"%s\" %d)\n", suri, ret);
       }
 
     return ret;
 }
 
 int
-connect_output (std::string uri)
+connect_output (FILE * outpipe, std::string uri)
 {
     int x;
     int ret = -1;
@@ -578,8 +579,8 @@ connect_output (std::string uri)
 
     if (ret != -1)
       {
-        print_namespace (); // XXX: hack
-        printf ("(" PREFIX "connected-output \"%s\" %d)\n", suri, ret);
+        print_namespace (outpipe); // XXX: hack
+        fprintf (outpipe, "(" PREFIX "connected-output \"%s\" %d)\n", suri, ret);
       }
 
     return ret;
@@ -593,6 +594,8 @@ main (int argc, char * argv[])
     bool run = false;
     bool timestamps = false;
     bool no_throttle = false;
+    FILE * outpipe = stdout;
+    //FILE * in = stdin; // TODO
 
     TIME_START;
     my_time_proc (0); // <-- don't leave this out!
@@ -632,12 +635,12 @@ main (int argc, char * argv[])
                   {
                     int x;
                     if (argv[i][0] == '-') break;
-                    if (connect_input (argv[i]) == -1)
+                    if (connect_input (outpipe, argv[i]) == -1)
                       {
                         assert (false);
                       }
                   }
-                run = true; enable_realtime ();
+                run = true; enable_realtime (outpipe);
                 break;
 
               case 'o':
@@ -645,17 +648,17 @@ main (int argc, char * argv[])
                   {
                     int x;
                     if (argv[i][0] == '-') break;
-                    if (connect_output (argv[i]) == -1)
+                    if (connect_output (outpipe, argv[i]) == -1)
                       {
                         assert (false);
                       }
                   }
-                run = true; enable_realtime ();
+                run = true; enable_realtime (outpipe);
                 break;
 
               case 't':
                 timestamps = true;
-                run = true; enable_realtime ();
+                run = true; enable_realtime (outpipe);
                 break;
 
               case 'n':
@@ -680,7 +683,7 @@ main (int argc, char * argv[])
 
     if (list)
       {
-        print_portmidi_list (false);
+        print_portmidi_list (stdout, false);
         fflush (stdout);
       }
 
@@ -689,7 +692,7 @@ main (int argc, char * argv[])
         int64_t cur_time;
         int64_t end_time = 0;
         int64_t throttle_time = 0;
-        print_namespace ();
+        print_namespace (outpipe);
         set_nonblocking_stdin ();
         //TIME_START;
         while (true)
@@ -709,7 +712,7 @@ main (int argc, char * argv[])
                   }
                 if ((cur_time - last_time) >= 1000LL * 1000LL * 1000LL)
                   {
-                    printf ("(" PREFIX "time %lld)\n", cur_time);
+                    fprintf (outpipe, "(" PREFIX "time %lld)\n", cur_time);
                     //fflush (stdout);
                     again = true;
                     last_time += 1000LL * 1000LL * 1000LL;
@@ -735,7 +738,8 @@ main (int argc, char * argv[])
                         buf[0] = Pm_MessageStatus (pmbuf[0].message);
                         buf[1] = Pm_MessageData1 (pmbuf[0].message);
                         buf[2] = Pm_MessageData2 (pmbuf[0].message);
-                        print_midi_message (buf,
+                        print_midi_message (outpipe,
+                                            buf,
                                             3,
                                             // XXX: this is a hack because
                                             //      either ALSA or PortMidi
@@ -793,21 +797,21 @@ main (int argc, char * argv[])
                         // XXX: parsing strings is blech:
                         if (sscanf (buf, "(" PREFIX "connect-input \"%[^\"]\")", uri) == 1)
                           {
-                            if (connect_input (uri) == -1)
+                            if (connect_input (outpipe, uri) == -1)
                               {
                                 assert (false);
                               }
                           }
                         else if (sscanf (buf, "(" PREFIX "connect-output \"%[^\"]\")", uri) == 1)
                           {
-                            if (connect_output (uri) == -1)
+                            if (connect_output (outpipe, uri) == -1)
                               {
                                 assert (false);
                               }
                           }
                         else if (strcmp (buf, "(" PREFIX "list-ports)") == 0)
                           {
-                            print_portmidi_list (true);
+                            print_portmidi_list (outpipe, true);
                           }
                         else if (strcmp (buf, "(" PREFIX "list-connections)") == 0)
                           {
@@ -816,14 +820,14 @@ main (int argc, char * argv[])
                                  i != connected_inputs.end ();
                                  ++i)
                               {
-                                printf ("(" PREFIX "connected-input \"%s\" %d)\n",
+                                fprintf (outpipe, "(" PREFIX "connected-input \"%s\" %d)\n",
                                         i->first.c_str (), i->second);
                               }
                             for (i = connected_outputs.begin ();
                                  i != connected_outputs.end ();
                                  ++i)
                               {
-                                printf ("(" PREFIX "connected-output \"%s\" %d)\n",
+                                fprintf (outpipe, "(" PREFIX "connected-output \"%s\" %d)\n",
                                         i->first.c_str (), i->second);
                               }
                           }
