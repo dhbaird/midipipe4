@@ -165,6 +165,7 @@ print_midi_message (FILE * outpipe, const char * buf, int len, int64_t time, int
     const uint8_t velocity = buf[2];
     const uint8_t value = buf[2];
     const int32_t pitch = (buf[1] | buf[2] * 128) - 0x2000;
+		long long int time_ll = time;
     //assert (status & 0x80);
     if (!(status & 0x80)) return;
     switch (status & 0xf0)
@@ -172,43 +173,43 @@ print_midi_message (FILE * outpipe, const char * buf, int len, int64_t time, int
       case 0x80:
         //assert (len == 3);
         fprintf (outpipe, "(" PREFIX "note-off %lld %d %d %d %d)\n",
-                time, port, channel, key, velocity);
+                time_ll, port, channel, key, velocity);
         break;
       case 0x90:
         //assert (len == 3);
         fprintf (outpipe, "(" PREFIX "note-on %lld %d %d %d %d)\n",
-                time, port, channel, key, velocity);
+                time_ll, port, channel, key, velocity);
         break;
       case 0xa0:
         {
             //assert (len == 3);
             const uint8_t pressure = buf[2];
             fprintf (outpipe, "(" PREFIX "key-pressure %lld %d %d %d %d)\n",
-                    time, port, channel, key, pressure);
+                    time_ll, port, channel, key, pressure);
         }
         break;
       case 0xb0:
         //assert (len == 3);
         fprintf (outpipe, "(" PREFIX "control-change %lld %d %d %d %d)\n",
-                time, port, channel, controller, value);
+                time_ll, port, channel, controller, value);
         break;
       case 0xc0:
         //assert (len == 2);
         fprintf (outpipe, "(" PREFIX "program-change %lld %d %d %d)\n",
-                time, port, channel, program);
+                time_ll, port, channel, program);
         break;
       case 0xd0:
         {
             //assert (len == 2);
             const uint8_t pressure = buf[1];
             fprintf (outpipe, "(" PREFIX "channel-pressure %lld %d %d %d)\n",
-                    time, port, channel, pressure);
+                    time_ll, port, channel, pressure);
         }
         break;
       case 0xe0:
         //assert (len == 3);
         fprintf (outpipe, "(" PREFIX "pitch-bend %lld %d %d %d)\n",
-                time, port, channel, pitch);
+                time_ll, port, channel, pitch);
         break;
       // TODO: sysex
       }
@@ -720,7 +721,7 @@ main (int argc, char * argv[])
                   }
                 if ((cur_time - last_time) >= 1000LL * 1000LL * 1000LL)
                   {
-                    fprintf (outpipe, "(" PREFIX "time %lld)\n", cur_time);
+                    fprintf (outpipe, "(" PREFIX "time %lld)\n", (long long int) cur_time);
                     //fflush (stdout);
                     again = true;
                     last_time += 1000LL * 1000LL * 1000LL;
@@ -780,7 +781,7 @@ main (int argc, char * argv[])
                                               midi_buf, BUFLEN, &time, &port);
                     if (ret > 0 && pm_outputs.count (port) > 0)
                       {
-                        end_time += std::max (0LL, time - end_time);
+                        end_time += std::max (0LL, (long long int) (time - end_time));
                         // Don't advance more than 2 seconds past the current
                         // time:
                         throttle_time = end_time - 2LL * 1000 * 1000 * 1000;
