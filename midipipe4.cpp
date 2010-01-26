@@ -223,6 +223,7 @@ parse_midi_message (const char * str,
                     char * buf, int len,
                     int64_t * time, int * port)
 {
+    long long int time_ll; // <- to satisfy %lld
     int channel;
     int key;
     int controller;
@@ -234,8 +235,9 @@ parse_midi_message (const char * str,
     assert (len >= 3);
 
     if (sscanf (str, "(" PREFIX "note-off %lld %d %d %d %d)",
-                time, port, &channel, &key, &velocity) == 5)
+                &time_ll, port, &channel, &key, &velocity) == 5)
       {
+        *time = time_ll;
         buf[0] = 0x80 | channel;
         buf[1] = key;
         buf[2] = velocity;
@@ -243,8 +245,9 @@ parse_midi_message (const char * str,
       }
 
     if (sscanf (str, "(" PREFIX "note-on %lld %d %d %d %d)",
-                time, port, &channel, &key, &velocity) == 5)
+                &time_ll, port, &channel, &key, &velocity) == 5)
       {
+        *time = time_ll;
         buf[0] = 0x90 | channel;
         buf[1] = key;
         buf[2] = velocity;
@@ -252,8 +255,9 @@ parse_midi_message (const char * str,
       }
 
     if (sscanf (str, "(" PREFIX "key-pressure %lld %d %d %d %d)",
-                time, port, &channel, &key, &pressure) == 5)
+                &time_ll, port, &channel, &key, &pressure) == 5)
       {
+        *time = time_ll;
         buf[0] = 0xa0 | channel;
         buf[1] = key;
         buf[2] = pressure;
@@ -261,8 +265,9 @@ parse_midi_message (const char * str,
       }
 
     if (sscanf (str, "(" PREFIX "control-change %lld %d %d %d %d)",
-                time, port, &channel, &controller, &value) == 5)
+                &time_ll, port, &channel, &controller, &value) == 5)
       {
+        *time = time_ll;
         buf[0] = 0xb0 | channel;
         buf[1] = controller;
         buf[2] = value;
@@ -270,26 +275,29 @@ parse_midi_message (const char * str,
       }
 
     if (sscanf (str, "(" PREFIX "program-change %lld %d %d %d)",
-                time, port, &channel, &program) == 4)
+                &time_ll, port, &channel, &program) == 4)
       {
+        *time = time_ll;
         buf[0] = 0xc0 | channel;
         buf[1] = program;
         return 2;
       }
 
     if (sscanf (str, "(" PREFIX "channel-pressure %lld %d %d %d)",
-                time, port, &channel, &pressure) == 4)
+                &time_ll, port, &channel, &pressure) == 4)
       {
-          buf[0] = 0xd0 | channel;
-          buf[1] = pressure;
+        *time = time_ll;
+        buf[0] = 0xd0 | channel;
+        buf[1] = pressure;
         return 2;
       }
 
     if (sscanf (str, "(" PREFIX "pitch-bend %lld %d %d %d)",
-                time, port, &channel, &pitch) == 4)
+                &time_ll, port, &channel, &pitch) == 4)
       {
         int pitchx = pitch + 0x2000;
         assert (pitchx >= 0);
+        *time = time_ll;
         buf[0] = 0xe0 | channel;
         buf[1] = pitchx & 0x7f;
         buf[2] = (pitchx >> 7) & 0x7f;
