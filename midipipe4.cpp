@@ -417,6 +417,7 @@ enable_realtime (FILE * outpipe)
         if (!failed)
           {
             fprintf (outpipe, "(log \"SCHED_FIFO realtime enabled.  Excellent!\")\n");
+            fflush (stdout);
           }
         if (failed)
           {
