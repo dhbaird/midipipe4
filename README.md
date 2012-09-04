@@ -66,10 +66,12 @@ Building
 
 Here's how to build:
 
-    make PLATFORM=mac # <-- if you're on OS X
+    # If you're on OS X:
+    make PLATFORM=mac
 
+    # If you're on Linux:
     sudo apt-get install libasound2-dev
-    make PLATFORM=linux # <-- if you're on Linux (ALSA)
+    make PLATFORM=linux
 
 Examples
 ========
