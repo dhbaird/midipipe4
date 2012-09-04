@@ -10,7 +10,7 @@ tool does that work for you. [PortMidi](http://portmedia.sourceforge.net/)
 has already made this job fairly easy (and, this tool happens to use
 PortMidi). But, with this tool, you don't have to link to anything -
 not even to PortMidi, because this tool creates a pipe-based message
-interface.
+interface for your application to use.
 
 Caveat: This tool is based on older (somewhat ad-hoc) ideas, and is not
 caught up to most recent trends (like JSON!). The message boundaries
