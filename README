@@ -1,4 +1,0 @@
-To build:
-
-    make PLATFORM=linux
-    make PLATFORM=mac
