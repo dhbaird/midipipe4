@@ -10,14 +10,14 @@ CFLAGS += $(REALTIME)
 CXXFLAGS = $(CFLAGS)
 
 ifeq ($(PLATFORM),linux)
-  LDFLAGS += -lasound
+  LDLIBS += -lasound
   REALTIME = -DUSE_LINUX_SCHED_FIFO
 endif
 ifeq ($(PLATFORM),mac)
-  LDFLAGS += -framework CoreMIDI
-  LDFLAGS += -framework CoreFoundation
-  LDFLAGS += -framework CoreAudio
-  LDFLAGS += -framework CoreServices
+  LDLIBS += -framework CoreMIDI
+  LDLIBS += -framework CoreFoundation
+  LDLIBS += -framework CoreAudio
+  LDLIBS += -framework CoreServices
   REALTIME = -DUSE_OSX_REALTIME
 endif
 
