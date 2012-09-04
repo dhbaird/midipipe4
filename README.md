@@ -54,7 +54,7 @@ Features
 - Can list MIDI endpoints (in and out ports).
 - Can subscribe to many inputs at once, and can send to many outputs at once.
 - Supports encoding as Sexps (Lisp). (To do: JSON and OSC)
-- OS support: OS X, Linux.
+- OS support: OS X (at least, whatever was around in 2008), Linux.
 - Knows how to turn on realtime scheduling in OS X
   (`THREAD_TIME_CONSTRAINT_POLICY`) and Linux (`SCHED_FIFO`). This probably
   doesn't do you much good though since these scheduling priorities are
@@ -66,8 +66,10 @@ Building
 
 Here's how to build:
 
-    make platform=mac # <-- if you're on OS X
-    make platform=linux # <-- if you're on Linux (ALSA)
+    make PLATFORM=mac # <-- if you're on OS X
+
+    sudo apt-get install libasound2-dev
+    make PLATFORM=linux # <-- if you're on Linux (ALSA)
 
 Examples
 ========
