@@ -4,9 +4,27 @@ midipipe4
 Another cross-platform, message-based (non-API) approach to sending and
 receiving MIDI events.
 
-Why use this library? Why not use Open Sound Control? Well, hopefully
-this library will soon be compatible with Open Sound Control (OSC).
-More to be said soon...
+Rationale: Instead of having to worry about linking to special libraries
+or importing special modules to use your your OS's native MIDI APIs, this
+tool does that work for you. [PortMidi](http://portmedia.sourceforge.net/)
+has already made this job fairly easy (and, this tool happens to use
+PortMidi). But, with this tool, you don't have to link to anything -
+not even to PortMidi, because this tool creates a pipe-based message
+interface.
+
+Caveat: This tool is based on older (somewhat ad-hoc) ideas, and is not
+caught up to most recent trends (like JSON!). The message boundaries
+are also determined by EOL characters (which is great for humans), but
+with the advent of some standards for framing (namely, WebSocket), more
+framing options might also be a worthwhile pursuit. Also, running this
+tool as a separate process, and incurring additional context switches,
+carries some overhead (hence a desire to support an optional linkable
+mode, so this operates in the same process/thread). In practice, this
+tool works fairly nicely and there seems little need to worry about the
+context switches.
+
+Why not use Open Sound Control? Well, hopefully this tool will soon be
+compatible with Open Sound Control (OSC).  More to be said soon...
 
 <!---
 I would also recommend looking into the JSON serialization (when
@@ -38,7 +56,9 @@ Features
 - Supports encoding as Sexps (Lisp). (To do: JSON and OSC)
 - OS support: OS X, Linux.
 - Knows how to turn on realtime scheduling in OS X
-  (`THREAD_TIME_CONSTRAINT_POLICY`) and Linux (`SCHED_FIFO`).
+  (`THREAD_TIME_CONSTRAINT_POLICY`) and Linux (`SCHED_FIFO`). This probably
+  doesn't do you much good though since these scheduling priorities are
+  only enabled in the tool itself, and not yet in your application.
 - Based on PortMidi (included).
 
 Building
